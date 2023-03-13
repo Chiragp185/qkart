@@ -10,7 +10,7 @@ import "./Register.css";
 
 const Register = () => {
   const { enqueueSnackbar } = useSnackbar();
-
+  let [isLoading, setIsLoading] = useState(false);
 
   // TODO: CRIO_TASK_MODULE_REGISTER - Implement the register function
   /**
@@ -36,6 +36,33 @@ const Register = () => {
    * }
    */
   const register = async (formData) => {
+    setIsLoading(true);
+    const url = config.endpoint + "/auth/register";
+    axios
+      .post(url, formData)
+      .then((res) => {
+        if (res.status === 201)
+          enqueueSnackbar("Registered Successfully", {
+            variant: "success",
+          });
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (err.response) {
+          enqueueSnackbar("Username is already taken", {
+            variant: "error",
+          });
+          setIsLoading(false);
+        } else if (err.request) {
+          enqueueSnackbar(
+            "Something went wrong. Check that the backend is running, reachable and returns valid JSON",
+            {
+              variant: "error",
+            }
+          );
+          setIsLoading(false);
+        }
+      });
   };
 
   // TODO: CRIO_TASK_MODULE_REGISTER - Implement user input validation logic
@@ -57,8 +84,44 @@ const Register = () => {
    * -    Check that confirmPassword field has the same value as password field - Passwords do not match
    */
   const validateInput = (data) => {
+    if (data.username.length === 0) {
+      enqueueSnackbar("Username is a required field", { variant: "warning" });
+      return false;
+    } else if (data.username.length < 6) {
+      enqueueSnackbar("Username must be atleast 6 characters", {
+        variant: "warning",
+      });
+      return false;
+    } else if (data.password.length === 0) {
+      enqueueSnackbar("Password is a required field", { variant: "warning" });
+      return false;
+    } else if (data.password.length < 6) {
+      enqueueSnackbar("Password must be atleast 6 characters", {
+        variant: "warning",
+      });
+      return false;
+    } else if (data.password !== data.confirmPassword) {
+      enqueueSnackbar("Passwords do not match", { variant: "warning" });
+      return false;
+    }
+    return true;
   };
 
+  let [username, setUsername] = useState("");
+  let [pswd, setPswd] = useState("");
+  let [confpswd, setConfpswd] = useState("");
+
+  function fetchFormData() {
+    if (
+      validateInput({
+        username: username,
+        password: pswd,
+        confirmPassword: confpswd,
+      })
+    ) {
+      register({ username: username, password: pswd });
+    }
+  }
   return (
     <Box
       display="flex"
@@ -77,6 +140,7 @@ const Register = () => {
             title="Username"
             name="username"
             placeholder="Enter Username"
+            onChange={(e) => setUsername(e.target.value)}
             fullWidth
           />
           <TextField
@@ -85,6 +149,7 @@ const Register = () => {
             label="Password"
             name="password"
             type="password"
+            onChange={(e) => setPswd(e.target.value)}
             helperText="Password must be atleast 6 characters length"
             fullWidth
             placeholder="Enter a password with minimum 6 characters"
@@ -95,16 +160,24 @@ const Register = () => {
             label="Confirm Password"
             name="confirmPassword"
             type="password"
+            onChange={(e) => setConfpswd(e.target.value)}
             fullWidth
           />
-           <Button className="button" variant="contained">
-            Register Now
-           </Button>
+          {!isLoading && (
+            <Button
+              className="button"
+              variant="contained"
+              onClick={fetchFormData}
+            >
+              Register Now
+            </Button>
+          )}
+          {isLoading && <CircularProgress className="loading"/>}
           <p className="secondary-action">
             Already have an account?{" "}
-             <a className="link" href="#">
+            <a className="link" href="#">
               Login here
-             </a>
+            </a>
           </p>
         </Stack>
       </Box>
