@@ -28,19 +28,19 @@ const Header = ({ children, hasHiddenAuthButtons }) => {
       )}
       {hasHiddenAuthButtons &&
         (localStorage.getItem("username") ? (
-          <Stack spacing={2} direction="row">
+          <Stack spacing={2} direction="row" alignItems="center">
             <Button className="button" variant="text">
             <Avatar src="avatar.png" alt={localStorage.getItem("username")}/>
-            <p style={{color:"black", margin:"2px"}}> {localStorage.getItem("username")}</p>
+            <p> {localStorage.getItem("username")}</p>
             </Button>
-            <Button className="button" variant="contained" onClick={
+            <Button className="button" variant="text" onClick={
               ()=>
               {
                 localStorage.clear();
                 window.location.reload();
               }
             }>
-              LOGOUT
+              Logout
             </Button>
           </Stack>
         ) : (
@@ -49,14 +49,14 @@ const Header = ({ children, hasHiddenAuthButtons }) => {
                 history.push("/login");
 
             }}>
-              LOGIN
+              Login
             </Button>
             <Button className="button" variant="contained" onClick={
               ()=>{
                 history.push("/register");
               }
             }>
-              REGISTER
+              Register
             </Button>
           </Stack>
         ))}
