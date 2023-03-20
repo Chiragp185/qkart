@@ -9,7 +9,7 @@ import { Box } from "@mui/system";
 import React from "react";
 import { useHistory } from "react-router-dom";
 import "./Cart.css";
-import {useState} from "react";
+import { useState } from "react";
 // Definition of Data Structures used
 /**
  * @typedef {Object} Product - Data on product available to buy
@@ -56,11 +56,11 @@ export const generateCartItemsFrom = (cartData, productsData) => {
         items.push({
           name: productsData[j].name,
           qty: cartData[i].qty,
-          category:productsData[j].category,
-          cost:productsData[j].cost,
-          rating:productsData[j].rating,
-          image:productsData[j].image,
-          productId: productsData[j]._id
+          category: productsData[j].category,
+          cost: productsData[j].cost,
+          rating: productsData[j].rating,
+          image: productsData[j].image,
+          productId: productsData[j]._id,
         });
         break;
       }
@@ -81,11 +81,9 @@ export const generateCartItemsFrom = (cartData, productsData) => {
  *
  */
 export const getTotalCartValue = (items = []) => {
-
   let totalCost = 0;
-  for(let item of items)
-  {
-    totalCost+=item.cost*item.qty;
+  for (let item of items) {
+    totalCost += item.cost * item.qty;
   }
   return totalCost;
 };
@@ -132,12 +130,13 @@ const ItemQuantity = ({ value, handleAdd, handleDelete }) => {
  * @param {Function} handleDelete
  *    Current quantity of product in cart
  *
+ * @param {Boolean} isReadOnly
+ *    If product quantity on cart is to be displayed as read only without the + - options to change quantity
+ *
  *
  */
-const Cart = ({ products, items = [], handleQuantity }) => {
+const Cart = ({ products, items = [], handleQuantity, isReadOnly }) => {
   const history = useHistory();
-
-
 
   if (!items.length) {
     return (
@@ -149,21 +148,28 @@ const Cart = ({ products, items = [], handleQuantity }) => {
       </Box>
     );
   }
-  const handleAdd = (productId,qty) => {
-
-    handleQuantity(localStorage.getItem("token"),items,products, productId,qty,{preventDuplicate:false});
-      
-
-
-    
+  const handleAdd = (productId, qty) => {
+    handleQuantity(
+      localStorage.getItem("token"),
+      items,
+      products,
+      productId,
+      qty,
+      { preventDuplicate: false }
+    );
   };
 
-  const handleDelete = (productId,qty) => {
-    
-      handleQuantity(localStorage.getItem("token"),items,products, productId,qty,{preventDuplicate:false});
-      //addToCart(localStorage.getItem("token"),items,products,productId,newItems[itemIndex].qty);
-    }
-  
+  const handleDelete = (productId, qty) => {
+    handleQuantity(
+      localStorage.getItem("token"),
+      items,
+      products,
+      productId,
+      qty,
+      { preventDuplicate: false }
+    );
+    //addToCart(localStorage.getItem("token"),items,products,productId,newItems[itemIndex].qty);
+  };
 
   return (
     <>
@@ -171,7 +177,12 @@ const Cart = ({ products, items = [], handleQuantity }) => {
         {
           /* TODO: CRIO_TASK_MODULE_CART - Display view for each cart item with non-zero quantity */
           items.map((product) => (
-            <Box display="flex" alignItems="flex-start" padding="1rem" key={product.productId}>
+            <Box
+              display="flex"
+              alignItems="flex-start"
+              padding="1rem"
+              key={product.productId}
+            >
               <Box className="image-container">
                 <img
                   // Add product image
@@ -195,14 +206,22 @@ const Cart = ({ products, items = [], handleQuantity }) => {
                   justifyContent="space-between"
                   alignItems="center"
                 >
-                  <ItemQuantity
-                  // Add required props by checking implementation
-                  value={product.qty}  
-                  handleAdd={()=>handleAdd(product.productId,product.qty+1)}
-                  handleDelete={()=>handleDelete(product.productId,product.qty-1)}
-                  />
+                  {isReadOnly ? (
+                    <p>Qty: {product.qty}</p>
+                  ) : (
+                    <ItemQuantity
+                      // Add required props by checking implementation
+                      value={product.qty}
+                      handleAdd={() =>
+                        handleAdd(product.productId, product.qty + 1)
+                      }
+                      handleDelete={() =>
+                        handleDelete(product.productId, product.qty - 1)
+                      }
+                    />
+                  )}
                   <Box padding="0.5rem" fontWeight="700">
-                  ${product.cost}
+                    ${product.cost}
                   </Box>
                 </Box>
               </Box>
@@ -229,17 +248,23 @@ const Cart = ({ products, items = [], handleQuantity }) => {
             ${getTotalCartValue(items)}
           </Box>
         </Box>
-        <Box display="flex" justifyContent="flex-end" className="cart-footer">
-          <Button
-            color="primary"
-            variant="contained"
-            startIcon={<ShoppingCart />}
-            className="checkout-btn"
-            onClick={()=>{history.push("/checkout")}}
-          >
-            Checkout
-          </Button>
-        </Box>
+        {isReadOnly ? (
+          <div></div>
+        ) : (
+          <Box display="flex" justifyContent="flex-end" className="cart-footer">
+            <Button
+              color="primary"
+              variant="contained"
+              startIcon={<ShoppingCart />}
+              className="checkout-btn"
+              onClick={() => {
+                history.push("/checkout");
+              }}
+            >
+              Checkout
+            </Button>
+          </Box>
+        )}
       </Box>
     </>
   );
