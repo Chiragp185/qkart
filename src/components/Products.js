@@ -15,21 +15,30 @@ import Header from "./Header";
 import "./Products.css";
 import ProductCard from "./ProductCard";
 import { debounce } from "@mui/material";
-
+import Cart from "./Cart";
+import { generateCartItemsFrom } from "./Cart";
 // Definition of Data Structures used
 /**
  * @typedef {Object} Product - Data on product available to buy
  *
  * @property {string} name - The name or title of the product
+
+
+/**
+ * @typedef {Object} CartItem -  - Data on product added to cart
+ * 
+ * @property {string} name - The name or title of the product in cart
+ * @property {string} qty - The quantity of product added to cart
  * @property {string} category - The category that the product belongs to
  * @property {number} cost - The price to buy the product
  * @property {number} rating - The aggregate rating of the product (integer out of five)
  * @property {string} image - Contains URL for the product image
- * @property {string} _id - Unique ID for the product
+ * @property {string} productId - Unique ID for the product
  */
 
 const Products = () => {
-  // TODO: CRIO_TASK_MODULE_PRODUCTS - Fetch products data and store it
+  const { enqueueSnackbar } = useSnackbar();
+
   /**
    * Make API call to get the products list and store it to display the products
    *
@@ -67,9 +76,21 @@ const Products = () => {
    * }
    */
   let [productArray, setProductArray] = useState(null);
+  let [cartArray, setCartArray] = useState(null);
   let [isLoading, setIsLoading] = useState(true);
   let [notFound, setNotFound] = useState(false);
-  useEffect(() => performAPICall(), []);
+  let [cartItems, setCartItems] = useState([]);
+  useEffect(() => {
+    if (productArray === null) {
+      performAPICall();
+    }
+    if (cartArray === null && localStorage.getItem("username")) {
+      fetchCart(localStorage.getItem("token"));
+    }
+    if (cartArray && productArray) {
+      setCartItems(generateCartItemsFrom(cartArray, productArray));
+    }
+  }, [cartArray, productArray]);
   const performAPICall = async () => {
     const url = config.endpoint + "/products";
     axios
@@ -127,11 +148,166 @@ const Products = () => {
    *
    */
   const debounceSearch = (event, debounceTimeout) => {
-    setTimeout(()=>{
+    setTimeout(() => {
       performSearch(event.target.value);
-    },debounceTimeout)
+    }, debounceTimeout);
   };
 
+  /**
+   * Perform the API call to fetch the user's cart and return the response
+   *
+   * @param {string} token - Authentication token returned on login
+   *
+   * @returns { Array.<{ productId: string, qty: number }> | null }
+   *    The response JSON object
+   *
+   * Example for successful response from backend:
+   * HTTP 200
+   * [
+   *      {
+   *          "productId": "KCRwjF7lN97HnEaY",
+   *          "qty": 3
+   *      },
+   *      {
+   *          "productId": "BW0jAAeDJmlZCF8i",
+   *          "qty": 1
+   *      }
+   * ]
+   *
+   * Example for failed response from backend:
+   * HTTP 401
+   * {
+   *      "success": false,
+   *      "message": "Protected route, Oauth2 Bearer token not found"
+   * }
+   */
+  const fetchCart = async (token) => {
+    if (!token) return;
+    console.log("fetching /cart ... ");
+    try {
+      // TODO: CRIO_TASK_MODULE_CART - Pass Bearer token inside "Authorization" header to get data from "GET /cart" API and return the response data
+      axios
+        .get(config.endpoint + "/cart", {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        })
+        .then((res) => {
+          setCartArray(res.data);
+        });
+    } catch (e) {
+      if (e.response && e.response.status === 400) {
+        enqueueSnackbar(e.response.data.message, { variant: "error" });
+      } else {
+        enqueueSnackbar(
+          "Could not fetch cart details. Check that the backend is running, reachable and returns valid JSON.",
+          {
+            variant: "error",
+          }
+        );
+      }
+      return null;
+    }
+  };
+
+  // TODO: CRIO_TASK_MODULE_CART - Return if a product already exists in the cart
+  /**
+   * Return if a product already is present in the cart
+   *
+   * @param { Array.<{ productId: String, quantity: Number }> } items
+   *    Array of objects with productId and quantity of products in cart
+   * @param { String } productId
+   *    Id of a product to be checked
+   *
+   * @returns { Boolean }
+   *    Whether a product of given "productId" exists in the "items" array
+   *
+   */
+  const isItemInCart = (items, productId) => {
+    console.log("checking");
+    for (let item of items) {
+      if (item.productId === productId) return true;
+    }
+    return false;
+  };
+
+  /**
+   * Perform the API call to add or update items in the user's cart and update local cart data to display the latest cart
+   *
+   * @param {string} token
+   *    Authentication token returned on login
+   * @param { Array.<{ productId: String, quantity: Number }> } items
+   *    Array of objects with productId and quantity of products in cart
+   * @param { Array.<Product> } products
+   *    Array of objects with complete data on all available products
+   * @param {string} productId
+   *    ID of the product that is to be added or updated in cart
+   * @param {number} qty
+   *    How many of the product should be in the cart
+   * @param {boolean} options
+   *    If this function was triggered from the product card's "Add to Cart" button
+   *
+   * Example for successful response from backend:
+   * HTTP 200 - Updated list of cart items
+   * [
+   *      {
+   *          "productId": "KCRwjF7lN97HnEaY",
+   *          "qty": 3
+   *      },
+   *      {
+   *          "productId": "BW0jAAeDJmlZCF8i",
+   *          "qty": 1
+   *      }
+   * ]
+   *
+   * Example for failed response from backend:
+   * HTTP 404 - On invalid productId
+   * {
+   *      "success": false,
+   *      "message": "Product doesn't exist"
+   * }
+   */
+  const addToCart = async (
+    token,
+    items,
+    products,
+    productId,
+    qty,
+    options = { preventDuplicate: false }
+  ) => {
+    console.log(productId, qty);
+    if (!localStorage.getItem("username")) {
+      enqueueSnackbar("Login to add an item to the Cart", {
+        variant: "warning",
+      });
+    } else if (options.preventDuplicate && isItemInCart(items, productId)) {
+      enqueueSnackbar(
+        "Item already in cart. Use the cart sidebar to update quantity or remove item",
+        { variant: "warning" }
+      );
+    } else {
+      axios
+        .post(
+          config.endpoint + "/cart",
+          {
+            productId: productId,
+            qty: qty,
+          },
+          {
+            headers: {
+              'Authorization': "Bearer " + token,
+            },
+          }
+        )
+        .then((res) => {
+          // console.log(res);
+
+          setCartItems(generateCartItemsFrom(res.data, products));
+
+          // setCartArray(res.data);
+        });
+    }
+  };
   return (
     <div>
       <Header hasHiddenAuthButtons={true}>
@@ -148,11 +324,10 @@ const Products = () => {
           }}
           placeholder="Search for items/categories"
           name="search"
-          onChange={(event)=>debounceSearch(event,2000)}
+          onChange={(event) => debounceSearch(event, 2000)}
         />
       </Header>
 
-      {/* Search view for mobiles */}
       <TextField
         className="search-mobile"
         size="small"
@@ -166,41 +341,112 @@ const Products = () => {
         }}
         placeholder="Search for items/categories"
         name="search"
-        onChange={(e) => performSearch(e.target.value)}
-
+        onChange={(e) => debounceSearch(e, 2000)}
       />
-      <Grid container>
-        <Grid item className="product-grid">
-          <Box className="hero">
-            <p className="hero-heading">
-              India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
-              to your door step
-            </p>
-          </Box>
-        </Grid>
-      </Grid>
+      {localStorage.getItem("username") ? (
+        <div>
+          <Grid container spacing={2}>
+            <Grid item className="product-grid" md={9} xs={12}>
+              <Box className="hero">
+                <p className="hero-heading">
+                  India’s{" "}
+                  <span className="hero-highlight">FASTEST DELIVERY</span> to
+                  your door step
+                </p>
+              </Box>
 
-      {isLoading ? (
-        <div className="loading">
-          <CircularProgress className="loading"></CircularProgress>
-          <h5>Loading Products...</h5>
-        </div>
-      ) : notFound ? (
-        <div className="loading">
-          <SentimentDissatisfied />
-          <h5>No products found</h5>
+              {isLoading ? (
+                <div className="loading">
+                  <CircularProgress className="loading"></CircularProgress>
+                  <h5>Loading Products...</h5>
+                </div>
+              ) : notFound ? (
+                <div className="loading">
+                  <SentimentDissatisfied />
+                  <h5>No products found</h5>
+                </div>
+              ) : (
+                <Grid container spacing={2} className="grid-container">
+                  {productArray.map((product) => {
+                    return (
+                      <Grid item xs={6} md={3} key={product._id}>
+                        <ProductCard
+                          product={product}
+                          handleAddToCart={() =>
+                            addToCart(
+                              localStorage.getItem("token"),
+                              cartArray,
+                              productArray,
+                              product._id,
+                              1,
+                              {preventDuplicate:true}
+                            )
+                          }
+                        />
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              )}
+            </Grid>
+            <Grid item md={3} xs={12} className="cart-background" mt={2}>
+              <Cart
+                products={productArray}
+                items={cartItems}
+                handleQuantity={addToCart}
+              />
+            </Grid>
+          </Grid>
         </div>
       ) : (
-        <Grid container spacing={2} className="grid-container">
-          {productArray.map((product) => {
-            return (
-              <Grid item xs={6} md={3} key={product._id}>
-                <ProductCard product={product} />
+        <div>
+          <Grid container>
+            <Grid item className="product-grid">
+              <Box className="hero">
+                <p className="hero-heading">
+                  India’s{" "}
+                  <span className="hero-highlight">FASTEST DELIVERY</span> to
+                  your door step
+                </p>
+              </Box>
+            </Grid>
+            {isLoading ? (
+              <div className="loading">
+                <CircularProgress className="loading"></CircularProgress>
+                <h5>Loading Products...</h5>
+              </div>
+            ) : notFound ? (
+              <div className="loading">
+                <SentimentDissatisfied />
+                <h5>No products found</h5>
+              </div>
+            ) : (
+              <Grid container spacing={2} className="grid-container">
+                {productArray.map((product) => {
+                  return (
+                    <Grid item xs={6} md={3} key={product._id}>
+                      <ProductCard
+                        product={product}
+                        handleAddToCart={() =>
+                          addToCart(
+                            localStorage.getItem("token"),
+                            cartArray,
+                            productArray,
+                            product._id,
+                            1,
+                            {preventDuplicate:true}
+                          )
+                        }
+                      />
+                    </Grid>
+                  );
+                })}
               </Grid>
-            );
-          })}
-        </Grid>
+            )}
+          </Grid>
+        </div>
       )}
+
       <Footer />
     </div>
   );
