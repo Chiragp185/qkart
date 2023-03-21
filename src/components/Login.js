@@ -52,7 +52,7 @@ const Login = () => {
           variant: "success",
         });
         setIsLoading(false);
-        console.log(res);
+      
         persistLogin(res.data.token,res.data.username,res.data.balance);
         history.push("/");
       })
@@ -121,7 +121,7 @@ const Login = () => {
     localStorage.setItem("token",token);
     localStorage.setItem("username",username);
     localStorage.setItem("balance",balance);
-    console.log("Local Storage done")
+  
   };
 
   function handleSubmit() {

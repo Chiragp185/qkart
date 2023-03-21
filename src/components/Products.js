@@ -96,12 +96,10 @@ const Products = () => {
     axios
       .get(url)
       .then((res) => {
-        // console.log(res.data);
         setProductArray(res.data);
         setIsLoading(false);
       })
       .catch((err) => {
-        console.log(err);
         return [];
       });
   };
@@ -122,12 +120,11 @@ const Products = () => {
    */
   const performSearch = async (text) => {
     setNotFound(false);
-    // console.log(text);
+
     const url = config.endpoint + "/products/search?value=" + text;
     axios
       .get(url)
       .then((res) => {
-        // console.log(res.data);
         setProductArray(res.data);
       })
       .catch((err) => {
@@ -183,7 +180,6 @@ const Products = () => {
    */
   const fetchCart = async (token) => {
     if (!token) return;
-    console.log("fetching /cart ... ");
     try {
       // TODO: CRIO_TASK_MODULE_CART - Pass Bearer token inside "Authorization" header to get data from "GET /cart" API and return the response data
       axios
@@ -224,7 +220,6 @@ const Products = () => {
    *
    */
   const isItemInCart = (items, productId) => {
-    console.log("checking");
     for (let item of items) {
       if (item.productId === productId) return true;
     }
@@ -275,7 +270,6 @@ const Products = () => {
     qty,
     options = { preventDuplicate: false }
   ) => {
-    console.log(productId, qty);
     if (!localStorage.getItem("username")) {
       enqueueSnackbar("Login to add an item to the Cart", {
         variant: "warning",
@@ -295,16 +289,12 @@ const Products = () => {
           },
           {
             headers: {
-              'Authorization': "Bearer " + token,
+              Authorization: "Bearer " + token,
             },
           }
         )
         .then((res) => {
-          // console.log(res);
-
           setCartItems(generateCartItemsFrom(res.data, products));
-
-          // setCartArray(res.data);
         });
     }
   };
@@ -379,7 +369,7 @@ const Products = () => {
                               productArray,
                               product._id,
                               1,
-                              {preventDuplicate:true}
+                              { preventDuplicate: true }
                             )
                           }
                         />
@@ -434,7 +424,7 @@ const Products = () => {
                             productArray,
                             product._id,
                             1,
-                            {preventDuplicate:true}
+                            { preventDuplicate: true }
                           )
                         }
                       />

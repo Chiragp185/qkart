@@ -39,7 +39,6 @@ const Register = () => {
    * }
    */
   const register = async (formData) => {
-    console.log(formData);
     setIsLoading(true);
     const url = config.endpoint + "/auth/register";
     axios
@@ -50,7 +49,7 @@ const Register = () => {
             variant: "success",
           });
         setIsLoading(false);
-       
+
         history.push("/login");
       })
       .catch((err) => {
@@ -67,8 +66,6 @@ const Register = () => {
             }
           );
           setIsLoading(false);
-          console.log(err)
-
         }
       });
   };
@@ -180,7 +177,7 @@ const Register = () => {
               Register Now
             </Button>
           )}
-          {isLoading && <CircularProgress className="loading"/>}
+          {isLoading && <CircularProgress className="loading" />}
           <p className="secondary-action">
             Already have an account?{" "}
             <Link className="link" to="/login">
